@@ -1,0 +1,8 @@
+[package]
+name = "ender-fb"
+version = "0.5.0"
+edition = "2024"
+description = "Ender-OS saf Rust /dev/fb0 framebuffer grafik arayüzü"
+
+[dependencies]
+libc = "0.2"

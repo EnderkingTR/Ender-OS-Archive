@@ -59,7 +59,7 @@ fn main() {
 
     let code = if invoked == "ender-utils" {
         if args.len() < 2 {
-            println!("Ender-OS Sistem Araçları (ender-utils v0.4)");
+            println!("Ender-OS Sistem Araçları (ender-utils v0.5)");
             println!("Kullanım: ender-utils <komut> [argümanlar...]");
             println!("Desteklenen komutlar: {}", APPLET_NAMES.join(", "));
             0

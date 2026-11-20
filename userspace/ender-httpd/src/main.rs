@@ -1,4 +1,4 @@
-//! Ender-OS v0.4 — Sıfır bağımlılıklı çok iş parçacıklı Rust HTTP/1.1 Web Sunucusu.
+//! Ender-OS v0.5 — Sıfır bağımlılıklı çok iş parçacıklı Rust HTTP/1.1 Web Sunucusu.
 //!
 //! `0.0.0.0:8080` portunda çalışarak canlı sistem kontrol paneli (`/`), JSON durum
 //! API'si (`/api/status`) ve `/dev/ender` çekirdek modülü okuma/yazma uç noktası
@@ -410,7 +410,7 @@ fn render_dashboard() -> String {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Ender-OS v0.4 Kontrol Paneli</title>
+<title>Ender-OS v0.5 Kontrol Paneli</title>
 <style>
   :root {{ --bg:#0b1020; --card:#131b2e; --border:#24314f; --fg:#e5ecff; --muted:#8fa3c7; --accent:#38bdf8; --ok:#22c55e; --warn:#f59e0b; }}
   * {{ box-sizing:border-box; }}
@@ -443,7 +443,7 @@ fn render_dashboard() -> String {
 <div class="wrap">
   <header>
     <div>
-      <h1>Ender-OS v0.4 — Sistem Kontrol Paneli</h1>
+      <h1>Ender-OS v0.5 — Sistem Kontrol Paneli</h1>
       <div class="sub">{host} &bull; {kernel}</div>
     </div>
     <div>{disk_badge} &nbsp; <a href="/api/status">JSON API (/api/status)</a></div>
@@ -533,7 +533,7 @@ fn render_status_json() -> String {
     let ender_msg = read_ender_dev().unwrap_or_default();
 
     format!(
-        "{{\"os\":\"Ender-OS v0.4\",\"hostname\":\"{}\",\"kernel\":\"{}\",\"uptime_secs\":{:.2},\"mem_total_kb\":{},\"mem_free_kb\":{},\"mem_available_kb\":{},\"data_mounted\":{},\"modules\":[{}],\"services\":[{}],\"ender_dev_msg\":\"{}\"}}\n",
+        "{{\"os\":\"Ender-OS v0.5\",\"hostname\":\"{}\",\"kernel\":\"{}\",\"uptime_secs\":{:.2},\"mem_total_kb\":{},\"mem_free_kb\":{},\"mem_available_kb\":{},\"data_mounted\":{},\"modules\":[{}],\"services\":[{}],\"ender_dev_msg\":\"{}\"}}\n",
         json_escape(&host),
         json_escape(&kernel),
         uptime,
@@ -677,7 +677,7 @@ fn main() {
         }
     };
 
-    println!("ender-httpd v0.4 dinleniyor: http://{addr}");
+    println!("ender-httpd v0.5 dinleniyor: http://{addr}");
     for conn in listener.incoming() {
         match conn {
             Ok(stream) => {

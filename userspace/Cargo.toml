@@ -1,5 +1,5 @@
 [workspace]
-members = ["ender-init", "ender-sh", "ender-utils", "ender-httpd"]
+members = ["ender-init", "ender-sh", "ender-utils", "ender-httpd", "ender-fb"]
 resolver = "2"
 
 [profile.release]

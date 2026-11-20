@@ -14,7 +14,7 @@ use std::io;
 use std::path::Path;
 use std::ptr;
 
-const OS_VERSION: &str = "Ender-OS v0.4";
+const OS_VERSION: &str = "Ender-OS v0.5";
 const HOSTNAME: &str = "ender-os";
 const DEFAULT_KMOD: &str = "/lib/modules/ender_dev.ko";
 
@@ -126,7 +126,7 @@ fn ensure_base_files() {
     }
 
     if !Path::new("/etc/os-release").exists() {
-        let content = "NAME=\"Ender-OS\"\nVERSION=\"0.4\"\nID=enderos\nPRETTY_NAME=\"Ender-OS v0.4\"\n";
+        let content = "NAME=\"Ender-OS\"\nVERSION=\"0.5\"\nID=enderos\nPRETTY_NAME=\"Ender-OS v0.5\"\n";
         let _ = fs::write("/etc/os-release", content);
     }
 }
@@ -203,7 +203,7 @@ fn print_banner(pid: u32, net_ok: bool, disk_ok: bool, kmod_ok: bool) {
             "yüklü değil"
         }
     );
-    println!("  Komutlar : help, ip, svc, df, fetch, enderctl, poweroff");
+    println!("  Komutlar : help, ip, svc, df, fetch, enderctl, ender-fb, poweroff");
     println!("================================================");
     println!();
 }

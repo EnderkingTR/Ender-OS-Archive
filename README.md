@@ -5,22 +5,21 @@
 ![Rust](https://img.shields.io/badge/Rust-2024_%2B_Rust--for--Linux-orange.svg)
 ![Architecture](https://img.shields.io/badge/Arch-x86__64-lightgrey.svg)
 
-**Ender-OS**, **Linux `6.18.64` LTS** çekirdeği üzerine sıfırdan inşa edilmiş; **Rust kullanıcı alanı (*userspace*)**, **Rust-for-Linux çekirdek modülü**, **mini-systemd servis denetleyicisi**, **TCP/IP ağ yığını**, **sıfır bağımlılıklı HTTP/1.1 Web Kontrol Paneli** ve **kalıcı `ext4` disk** desteğine sahip hafif bir işletim sistemidir.
+**Ender-OS**, **Linux `6.18.64` LTS** çekirdeği üzerine sıfırdan inşa edilmiş; **Rust kullanıcı alanı (*userspace*)**, **Rust-for-Linux çekirdek modülü**, **mini-systemd servis denetleyicisi**, **TCP/IP ağ yığını**, **HTTP/1.1 Web Kontrol Paneli**, **saf Rust `/dev/fb0` grafik arayüzü**, **kalıcı `ext4` disk** ve **hibrit BIOS+UEFI önyüklenebilir `.iso` imajı** desteğine sahip hafif bir işletim sistemidir.
 
 ---
 
-## Mimari Genel Bakış (`v0.4`)
+## Mimari Genel Bakış (`v0.5`)
 
 ```text
-Host Tarayıcı (http://localhost:8080)
-  └─ QEMU SLIRP Port Yönlendirme (8080 -> eth0:8080)
-       └─ Linux 6.18.64-ender (LLVM=1 + CONFIG_RUST=y + VirtIO-Net + VirtIO-Blk + ext4)
-            ├─ Rust-for-Linux LKM: ender_dev.ko (/dev/ender karakter aygıtı)
-            └─ PID 1: /init (ender-init — mini-systemd denetleyicisi)
-                 ├─ /dev/vda -> /data (kalıcı ext4 dosya sistemi)
-                 ├─ eth0 -> 10.0.2.15/24 (gw 10.0.2.2) (socket ioctl ile)
-                 ├─ PID 2: /bin/ender-httpd (0.0.0.0:8080 Web Dashboard & JSON API)
-                 └─ PID 3: /bin/ender-sh (boru hatlı etkileşimli kabuk + ender-utils)
+GRUB Önyükleyici (BIOS + UEFI Hibrit ISO -> 1024x768 Framebuffer)
+  └─ Linux 6.18.64-ender (LLVM=1 + CONFIG_RUST=y + VirtIO-Net/Blk + FB + PS/2)
+       ├─ Rust-for-Linux LKM: ender_dev.ko (/dev/ender karakter aygıtı)
+       └─ PID 1: /init (ender-init — mini-systemd denetleyicisi)
+            ├─ /dev/vda -> /data (kalıcı ext4 dosya sistemi)
+            ├─ eth0 -> 10.0.2.15/24 (gw 10.0.2.2) (socket ioctl ile)
+            ├─ PID 2: /bin/ender-httpd (0.0.0.0:8080 Web Dashboard & JSON API)
+            └─ PID 3: /bin/ender-sh (kabuk + ender-utils + ender-fb grafik arayüzü)
 ```
 
 ---
@@ -42,6 +41,8 @@ Host Tarayıcı (http://localhost:8080)
   - `MiscDevice` soyutlaması ve `GlobalLock<Mutex<DeviceState>>` kullanarak `/dev/ender` karakter aygıtını kaydeder; `read_iter`, `write_iter`, `IovIter`/`UserSlice` bellek sınırları ve özel `ioctl` (`stats` / `reset`) komutlarını uygular.
 - **`ender-httpd` (Sıfır Bağımlılıklı Rust Web Dashboard):**
   - Yalnızca `std::net::TcpListener` ve `std::thread` ile çalışan çok iş parçacıklı HTTP/1.1 sunucusu; canlı RAM/servis/modül/disk arayüzü (`/`), JSON API (`/api/status`), `/dev/ender` okuma/yazma uç noktası (`/api/ender-dev`) ve `/health` sunar.
+- **`ender-fb` (Saf Rust `/dev/fb0` Framebuffer Grafik Arayüzü) & Hibrit `.iso`:**
+  - X11/Wayland olmadan doğrudan `/dev/fb0` video belleğini `mmap` ederek yerleşik 8x8 piksel yazı tipiyle grafik sistem monitörü çizer; `grub-mkrescue` ile VirtualBox ve gerçek donanımda açılabilen `Ender-OS-v0.5.iso` üretir.
 
 ---
 
@@ -49,6 +50,7 @@ Host Tarayıcı (http://localhost:8080)
 
 ```text
 Ender-OS/
+├── boot/grub/grub.cfg              # BIOS + UEFI GRUB önyükleme menüsü (1024x768 FB)
 ├── docs/                           # Faz bazlı kurulum ve mimari dokümanları
 ├── kernel/
 │   ├── ender_x86_64.config         # Minimal x86_64 Linux 6.18.64 LTS yapılandırma parçası
@@ -59,13 +61,16 @@ Ender-OS/
 │   ├── build-module.sh             # Out-of-tree ender_dev.ko derleme betiği
 │   ├── build-disk.sh               # Kalıcı 16M ext4 sanal disk (data.img) oluşturma betiği
 │   ├── build-initramfs.sh          # Statik musl workspace derleme ve initramfs.cpio.gz paketleme
-│   └── run-qemu.sh                 # VirtIO-Net + VirtIO-Blk destekli QEMU başlatma betiği
+│   ├── build-iso.sh                # Hibrit BIOS + UEFI Ender-OS-v0.5.iso oluşturma betiği
+│   ├── run-qemu.sh                 # Doğrudan bzImage ile QEMU başlatma betiği
+│   └── run-iso-qemu.sh             # .iso imajını QEMU'da başlatma betiği (GUI=1 destekli)
 ├── userspace/
 │   ├── Cargo.toml                  # Rust workspace tanımı (LTO + strip)
 │   ├── ender-init/                 # PID 1 servis denetleyicisi ve ağ/disk başlatıcı
 │   ├── ender-sh/                   # Etkileşimli kabuk (ayrıştırıcı + boru hattı çalıştırıcısı)
 │   ├── ender-utils/                # 25 komutlu multi-call sistem araçları
-│   └── ender-httpd/                # Sıfır bağımlılıklı HTTP/1.1 Web Dashboard sunucusu
+│   ├── ender-httpd/                # Sıfır bağımlılıklı HTTP/1.1 Web Dashboard sunucusu
+│   └── ender-fb/                   # Saf Rust /dev/fb0 framebuffer grafik arayüzü
 ├── LICENSE                         # MIT Lisansı
 └── README.md
 ```
@@ -79,7 +84,7 @@ Ender-OS/
 - [x] **Faz 2 (`v0.2`) — Rust Userspace & Kabuk:** `ender-sh` kabuğu (`|`, `>`, `>>`), `ender-utils` multi-call araçları, `/proc` & `/sys` entegrasyonu ve PID 1 zombi toplama.
 - [x] **Faz 3 (`v0.3`) — Rust-for-Linux Çekirdek Modülü:** `LLVM=1` + `CONFIG_RUST=y` ile `/dev/ender` (`ender_dev.ko`) sürücüsü ve `insmod`/`rmmod`/`lsmod`/`dmesg`/`enderctl` araçları.
 - [x] **Faz 4 (`v0.4`) — Ağ, Web Paneli, Servis Yöneticisi & Kalıcı Disk:** `VirtIO-Net` + soket `ioctl`, `ender-httpd` Web Dashboard (`:8080`), mini-systemd denetleyicisi ve `VirtIO-Blk` `ext4` (`/data`) kalıcılığı.
-- [ ] **Faz 5 (`v0.5+`) — İleri Aşamalar:** VirtualBox/USB uyumlu önyüklenebilir GRUB `.iso` imajı ve isteğe bağlı framebuffer tabanlı grafik arayüz.
+- [x] **Faz 5 (`v0.5`) — Önyüklenebilir `.iso` & Framebuffer Grafik Arayüzü:** Hibrit BIOS+UEFI GRUB `Ender-OS-v0.5.iso`, sanal terminal (`tty0`), PS/2 klavye sürücüsü ve `/dev/fb0` üzerinde saf Rust `ender-fb` grafik monitörü.
 
 ---
 
@@ -103,17 +108,18 @@ rustup component add rust-src
 
 > **Not:** Windows üzerindeki boşluklu/NTFS dosya yollarında Kbuild uyumluluğu ve derleme hızı için tüm ağır derleme çıktıları WSL2 yerel `ext4` dizini olan `$HOME/ender-os-build` altında tutulur.
 
-### 2. Derleyin ve QEMU'da Çalıştırın
+### 2. Derleyin, ISO Oluşturun ve QEMU'da Çalıştırın
 
 ```bash
 bash scripts/build-kernel.sh
 bash scripts/build-module.sh
 bash scripts/build-disk.sh
 bash scripts/build-initramfs.sh
-bash scripts/run-qemu.sh
+bash scripts/build-iso.sh
+GUI=1 bash scripts/run-iso-qemu.sh
 ```
 
-QEMU açıldığında tarayıcınızdan **`http://localhost:8080`** adresini ziyaret ederek canlı kontrol paneline ulaşabilir ve `/dev/ender` çekirdek modülüne doğrudan mesaj gönderebilirsiniz. Terminal içinden `ip`, `svc`, `df`, `lsmod`, `enderctl stats`, `fetch http://127.0.0.1:8080/api/status` ve `poweroff` komutlarını deneyebilirsiniz.
+QEMU açıldığında tarayıcınızdan **`http://localhost:8080`** adresini ziyaret ederek canlı kontrol paneline ulaşabilir, grafik ekranda `ender-fb once` ile `/dev/fb0` arayüzünü çizebilir ve `ip`, `svc`, `df`, `lsmod`, `enderctl stats`, `fetch http://127.0.0.1:8080/api/status`, `poweroff` komutlarını deneyebilirsiniz. `build/Ender-OS-v0.5.iso` dosyasını doğrudan VirtualBox'ta da önyükleyebilirsiniz.
 
 ### 3. Birim Testlerini Çalıştırma
 
@@ -132,6 +138,7 @@ CARGO_TARGET_DIR="$HOME/ender-os-build/cargo-target" cargo test \
 - [Faz 2 — Rust Kabuğu ve Userspace (`Ender-OS v0.2`)](docs/02-kabuk-ve-userspace.md)
 - [Faz 3 — Rust-for-Linux Çekirdek Modülü (`Ender-OS v0.3`)](docs/03-cekirdek-modulu.md)
 - [Faz 4 — Ağ, Web Paneli, Servisler ve Kalıcı Disk (`Ender-OS v0.4`)](docs/04-ag-servis-ve-disk.md)
+- [Faz 5 — Önyüklenebilir `.iso` ve Framebuffer (`Ender-OS v0.5`)](docs/05-iso-ve-framebuffer.md)
 
 ---
 

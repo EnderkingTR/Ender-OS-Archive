@@ -22,7 +22,7 @@ RELEASE_DIR="$CARGO_TARGET/x86_64-unknown-linux-musl/release"
 mkdir -p "$CARGO_TARGET" "$OUT_DIR"
 
 echo "=========================================="
-echo "  Ender-OS v0.4 initramfs Oluşturuluyor"
+echo "  Ender-OS v0.5 initramfs Oluşturuluyor"
 echo "=========================================="
 
 # 1. Kaynak dosyaları WSL2 yerel ext4 dizinine eşitle (Cargo.lock önbelleğini korur)
@@ -44,7 +44,7 @@ CARGO_TARGET_DIR="$CARGO_TARGET" cargo build \
     --release \
     --target x86_64-unknown-linux-musl
 
-BINARIES=(ender-init ender-sh ender-utils ender-httpd)
+BINARIES=(ender-init ender-sh ender-utils ender-httpd ender-fb)
 for bin in "${BINARIES[@]}"; do
     BIN_PATH="$RELEASE_DIR/$bin"
     if [[ ! -f "$BIN_PATH" ]]; then
@@ -64,11 +64,13 @@ cp "$RELEASE_DIR/ender-init" "$ROOTFS/init"
 cp "$RELEASE_DIR/ender-sh" "$ROOTFS/bin/ender-sh"
 cp "$RELEASE_DIR/ender-utils" "$ROOTFS/bin/ender-utils"
 cp "$RELEASE_DIR/ender-httpd" "$ROOTFS/bin/ender-httpd"
+cp "$RELEASE_DIR/ender-fb" "$ROOTFS/bin/ender-fb"
 chmod 0755 \
     "$ROOTFS/init" \
     "$ROOTFS/bin/ender-sh" \
     "$ROOTFS/bin/ender-utils" \
-    "$ROOTFS/bin/ender-httpd"
+    "$ROOTFS/bin/ender-httpd" \
+    "$ROOTFS/bin/ender-fb"
 
 ln -s ender-sh "$ROOTFS/bin/sh"
 
@@ -94,9 +96,9 @@ fi
 
 cat > "$ROOTFS/etc/os-release" <<'EOF'
 NAME="Ender-OS"
-VERSION="0.4"
+VERSION="0.5"
 ID=enderos
-PRETTY_NAME="Ender-OS v0.4"
+PRETTY_NAME="Ender-OS v0.5"
 EOF
 
 # 4. newc cpio + gzip arşivi olarak paketle
