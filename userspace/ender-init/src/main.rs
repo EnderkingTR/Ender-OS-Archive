@@ -11,10 +11,14 @@ use std::env;
 use std::ffi::CString;
 use std::fs;
 use std::io;
+use std::os::unix::process::CommandExt;
 use std::path::Path;
+use std::process::Command;
 use std::ptr;
+use std::thread;
+use std::time::Duration;
 
-const OS_VERSION: &str = "Ender-OS v0.5";
+const OS_VERSION: &str = "Ender-OS v0.6";
 const HOSTNAME: &str = "ender-os";
 const DEFAULT_KMOD: &str = "/lib/modules/ender_dev.ko";
 
@@ -208,6 +212,81 @@ fn print_banner(pid: u32, net_ok: bool, disk_ok: bool, kmod_ok: bool) {
     println!();
 }
 
+fn parse_kernel_root_arg() -> Option<String> {
+    let cmdline = fs::read_to_string("/proc/cmdline").ok()?;
+    for tok in cmdline.split_whitespace() {
+        if let Some(dev) = tok.strip_prefix("root=")
+            && !dev.is_empty()
+        {
+            return Some(dev.to_string());
+        }
+    }
+    None
+}
+
+fn move_mount(src: &str, dst: &str) {
+    let _ = fs::create_dir_all(dst);
+    let Ok(c_src) = CString::new(src) else { return };
+    let Ok(c_dst) = CString::new(dst) else { return };
+    // SAFETY: `MS_MOVE` çekirdeğe mevcut bağlama noktasını yeni kök altına taşımasını söyler.
+    unsafe {
+        libc::mount(
+            c_src.as_ptr(),
+            c_dst.as_ptr(),
+            ptr::null(),
+            libc::MS_MOVE,
+            ptr::null(),
+        );
+    }
+}
+
+fn try_switch_root(root_dev: &str) {
+    for _ in 0..30 {
+        if Path::new(root_dev).exists() {
+            break;
+        }
+        thread::sleep(Duration::from_millis(100));
+    }
+
+    if let Err(err) = mount_fs(root_dev, "/newroot", "ext4") {
+        eprintln!("UYARI: {root_dev} -> /newroot bağlanamadı: {err}");
+        return;
+    }
+
+    if !Path::new("/newroot/sbin/init").exists() {
+        eprintln!("UYARI: /newroot/sbin/init bulunamadı; initramfs modunda devam ediliyor.");
+        return;
+    }
+
+    move_mount("/proc", "/newroot/proc");
+    move_mount("/sys", "/newroot/sys");
+    move_mount("/dev", "/newroot/dev");
+    move_mount("/run", "/newroot/run");
+
+    if env::set_current_dir("/newroot").is_err() {
+        return;
+    }
+
+    // SAFETY: `/newroot` geçerli bağlama noktasıdır; kök değiştirilip `/sbin/init` çalıştırılır.
+    unsafe {
+        libc::mount(
+            c".".as_ptr(),
+            c"/".as_ptr(),
+            ptr::null(),
+            libc::MS_MOVE,
+            ptr::null(),
+        );
+        if libc::chroot(c".".as_ptr()) != 0 {
+            eprintln!("HATA: chroot başarısız: {}", io::Error::last_os_error());
+            return;
+        }
+    }
+    let _ = env::set_current_dir("/");
+
+    let err = Command::new("/sbin/init").exec();
+    eprintln!("HATA: /sbin/init (switch_root) başlatılamadı: {err}");
+}
+
 fn main() {
     let pid = std::process::id();
 
@@ -217,6 +296,10 @@ fn main() {
     }
 
     mount_essential_filesystems();
+
+    if let Some(root_dev) = parse_kernel_root_arg() {
+        try_switch_root(&root_dev);
+    }
     set_hostname(HOSTNAME);
     ensure_base_files();
     configure_tty_utf8();
