@@ -1,0 +1,10 @@
+build/
+target/
+*.iso
+*.img
+*.cpio
+*.cpio.gz
+*.tar.xz
+*.tar.gz
+.DS_Store
+Thumbs.db

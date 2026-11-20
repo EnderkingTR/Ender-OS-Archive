@@ -1,0 +1,8 @@
+[package]
+name = "ender-utils"
+version = "0.2.0"
+edition = "2024"
+description = "Ender-OS çoklu-komut (multi-call) sistem araçları (Rust)"
+
+[dependencies]
+libc = "0.2"

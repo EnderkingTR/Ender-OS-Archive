@@ -1,0 +1,8 @@
+[package]
+name = "ender-init"
+version = "0.1.0"
+edition = "2024"
+description = "Ender-OS PID 1 init süreci (Rust)"
+
+[dependencies]
+libc = "0.2"
