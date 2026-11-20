@@ -5,7 +5,7 @@
 ![Rust](https://img.shields.io/badge/Rust-2024_%2B_Rust--for--Linux-orange.svg)
 ![Architecture](https://img.shields.io/badge/Arch-x86__64-lightgrey.svg)
 
-**Ender-OS**, akademik ve sektörel sistem programlama gelişimi için **Linux `6.18.64` LTS** çekirdeği üzerine sıfırdan inşa edilmiş; **Rust kullanıcı alanı (*userspace*)**, **Rust-for-Linux çekirdek modülü**, **mini-systemd servis denetleyicisi**, **TCP/IP ağ yığını**, **sıfır bağımlılıklı HTTP/1.1 Web Kontrol Paneli** ve **kalıcı `ext4` disk** desteğine sahip hafif bir işletim sistemidir.
+**Ender-OS**, **Linux `6.18.64` LTS** çekirdeği üzerine sıfırdan inşa edilmiş; **Rust kullanıcı alanı (*userspace*)**, **Rust-for-Linux çekirdek modülü**, **mini-systemd servis denetleyicisi**, **TCP/IP ağ yığını**, **sıfır bağımlılıklı HTTP/1.1 Web Kontrol Paneli** ve **kalıcı `ext4` disk** desteğine sahip hafif bir işletim sistemidir.
 
 ---
 
